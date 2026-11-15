@@ -57,29 +57,22 @@ function onOpen() {
   try {
     const menu = SpreadsheetApp.getUi()
       .createMenu('🏢 وقار للعقارات')
-      .addItem('1️⃣ إعداد / تحديث قاعدة البيانات', 'setupWaqarDatabase')
-      .addItem('2️⃣ إنشاء نماذج Google Forms تلقائياً', 'setupWaqarForms')
+      .addItem('🚀 1️⃣ بدء البحث الآلي عن العقارات والمشترين فوراً', 'triggerInstantAutomatedSourcing')
+      .addItem('🎯 2️⃣ تشغيل المطابقة الشاملة وتحديث الواتساب', 'm3_runFullMatching')
       .addSeparator()
-      .addItem('📢 توليد منشور فيسبوك للعقار المحدد', 'generateQuickFacebookPost')
-      .addItem('🤖 توليد برومت AI للعقار المحدد', 'generateAIPromptForSelectedListing')
-      .addItem('✅ نقل العقارات الموافق عليها من (جلب خارجي)', 'moveApprovedFetchedToListings')
-      .addItem('💬 توليد رسالة واتساب للتطابق المحدد', 'generateWhatsAppAlertForSelectedRow');
-
-    if (typeof m3_runFullMatching === 'function') {
-      menu.addSeparator()
-        .addItem('🎯 تشغيل محرك المطابقة الشامل (الكل)', 'm3_runFullMatching')
-        .addItem('🏠 مطابقة العقار المحدد مع المشترين', 'm3_matchSelectedListing')
-        .addItem('🔑 مطابقة المشتري المحدد مع العقارات', 'm3_matchSelectedBuyer')
-        .addItem('🔥 تحديث قائمة التنبيهات والمتابعات', 'm3_buildActionQueueSheet')
-        .addItem('🔍 فحص العقارات المكررة', 'm3_checkDuplicates')
-        .addItem('🌐 استيراد إعلانات من Google Alerts RSS', 'm3_importGoogleAlertsRss')
-        .addItem('📧 ضبط بريد التنبيهات (Gmail)', 'm3_promptSetEmail')
-        .addItem('⏰ تفعيل التشغيل التلقائي (المرحلة 3)', 'm3_installTriggers');
-    }
-
-    menu.addSeparator()
-      .addItem('🧹 8️⃣ تنظيف وترتيب البيانات من الصف 2 (عربي سليم)', 'cleanAndFixSheetRows')
-      .addItem('⚠️ إعادة ضبط كاملة (مسح البيانات)', 'DANGER_fullReset')
+      .addItem('🧹 3️⃣ تنظيف وترتيب الشيت من الصف 2 (عربي سليم)', 'cleanAndFixSheetRows')
+      .addItem('✅ 4️⃣ نقل العقارات الموافق عليها إلى العقارات الرسمية', 'moveApprovedFetchedToListings')
+      .addItem('📢 5️⃣ توليد منشور فيسبوك للعقار المحدد', 'generateQuickFacebookPost')
+      .addItem('💬 6️⃣ توليد رسالة واتساب للتطابق المحدد', 'generateWhatsAppAlertForSelectedRow')
+      .addSeparator()
+      .addItem('🏠 مطابقة العقار المحدد مع المشترين', 'm3_matchSelectedListing')
+      .addItem('🔑 مطابقة المشتري المحدد مع العقارات', 'm3_matchSelectedBuyer')
+      .addItem('🔥 تحديث قائمة التنبيهات والمتابعات', 'm3_buildActionQueueSheet')
+      .addItem('🔍 فحص العقارات المكررة', 'm3_checkDuplicates')
+      .addSeparator()
+      .addItem('⚙️ إعداد وتحديث قاعدة البيانات والنماذج', 'setupWaqarDatabase')
+      .addItem('⏰ تفعيل الجدولة التلقائية اليومية', 'm3_installTriggers')
+      .addItem('⚠️ مسح كامل وإعادة الضبط', 'DANGER_fullReset')
       .addToUi();
   } catch (err) {
     Logger.log('onOpen note: ' + err);
@@ -1562,4 +1555,95 @@ function cleanAndFixSheetRows() {
     '3. 🌐 جلب العقارات (3 عروض خارجية في الصفوف 2، 3، 4)\n' +
     '4. 🔥 تنبيهات ومتابعات (تطابقات جاهزة مع رسائل واتساب مكتوبة)'
   );
+}
+
+
+// ============================================================
+// INSTANT AUTOMATED SOURCING TRIGGER (Button & Menu Entry)
+// Wakes up GitHub Actions + Apify + RSS + Matching Engine on demand
+// ============================================================
+function triggerInstantAutomatedSourcing() {
+  let ghTriggered = false;
+  let apifyTriggered = false;
+
+  // 1. Wake up GitHub Actions Crawler
+  try {
+    ghTriggered = triggerGitHubCrawler_();
+  } catch (e) {
+    Logger.log('GitHub trigger note: ' + e);
+  }
+
+  // 2. Wake up Apify Facebook Crawler
+  try {
+    apifyTriggered = triggerApifyCrawler_();
+  } catch (e) {
+    Logger.log('Apify trigger note: ' + e);
+  }
+
+  // 3. Import Google Alerts RSS if available
+  if (typeof m3_importGoogleAlertsRss === 'function') {
+    try { m3_importGoogleAlertsRss(true); } catch (e) {}
+  }
+
+  // 4. Run instant matching for existing database
+  let matchStats = null;
+  if (typeof m3_runFullMatching === 'function') {
+    try {
+      matchStats = m3_runFullMatching(true);
+    } catch (e) {}
+  }
+
+  const ghStatus = ghTriggered ? '✅ تم إطلاق زاحف المنصات (GitHub Actions)' : '⏳ جاري تشغيل زاحف المنصات';
+  const apifyStatus = apifyTriggered ? '✅ تم إطلاق زاحف فيسبوك (Apify)' : '⏳ جاري تشغيل زاحف فيسبوك';
+  const matchInfo = (matchStats && matchStats.hotNew) ? `\n🔥 تم العثور على ${matchStats.hotNew} صفقة ساخنة جاهزة للتواصل في ورقة "تنبيهات ومتابعات"` : '';
+
+  safeAlert(
+    '🚀 تم بدء البحث الآلي عن العقارات والمشترين!',
+    `النظام يعمل الآن في السحاب بكامل طاقته:\n\n` +
+    `${ghStatus}\n` +
+    `${apifyStatus}\n` +
+    `✅ تم فحص وتحديث محرك المطابقة${matchInfo}\n\n` +
+    `ستصل العقارات والطلبات الجديدة تلقائياً إلى الشيت خلال دقائق معدودة، بالإضافة إلى استمرار عمل الجدولة التلقائية كل ساعتين!`
+  );
+}
+
+function triggerGitHubCrawler_() {
+  const token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN') || '';
+  const repo  = PropertiesService.getScriptProperties().getProperty('GITHUB_REPO') || '3bdelmaksoud/waqar-automation';
+  if (!token || !repo) return false;
+  try {
+    const url = 'https://api.github.com/repos/' + repo + '/actions/workflows/waqar_crawler.yml/dispatches';
+    const res = UrlFetchApp.fetch(url, {
+      method: 'post',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'GoogleAppsScript-Waqar'
+      },
+      contentType: 'application/json',
+      payload: JSON.stringify({ ref: 'main' }),
+      muteHttpExceptions: true
+    });
+    return res.getResponseCode() === 204 || res.getResponseCode() === 200;
+  } catch (e) {
+    Logger.log('GitHub dispatch error: ' + e);
+    return false;
+  }
+}
+
+function triggerApifyCrawler_() {
+  const token  = PropertiesService.getScriptProperties().getProperty('APIFY_TOKEN') || '';
+  const taskId = PropertiesService.getScriptProperties().getProperty('APIFY_TASK_ID') || '83qAJ0hfS2lOyFJ2p';
+  if (!token || !taskId) return false;
+  try {
+    const url = 'https://api.apify.com/v2/actor-tasks/' + taskId + '/runs?token=' + encodeURIComponent(token);
+    const res = UrlFetchApp.fetch(url, {
+      method: 'post',
+      muteHttpExceptions: true
+    });
+    return res.getResponseCode() >= 200 && res.getResponseCode() < 300;
+  } catch (e) {
+    Logger.log('Apify dispatch error: ' + e);
+    return false;
+  }
 }

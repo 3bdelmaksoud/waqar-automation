@@ -17,5 +17,8 @@
     "automation"
   ],
   "author": "Waqar Real Estate",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "libsodium-wrappers": "^0.8.4"
+  }
 }

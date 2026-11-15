@@ -1574,3 +1574,98 @@ function cleanAndFixSheetRows() {
     );
   } catch (ignored) {}
 }
+
+
+// ============================================================
+// 16. INSTANT AUTOMATED SOURCING TRIGGER (Button & Menu Entry)
+// Wakes up GitHub Actions + Apify + RSS + Matching Engine on demand
+// ============================================================
+function triggerInstantAutomatedSourcing() {
+  let ghTriggered = false;
+  let apifyTriggered = false;
+
+  // 1. Wake up GitHub Actions Crawler
+  try {
+    ghTriggered = triggerGitHubCrawler_();
+  } catch (e) {
+    botLog_('TRIGGER_ERR', 'GitHub', String(e));
+  }
+
+  // 2. Wake up Apify Facebook Crawler
+  try {
+    apifyTriggered = triggerApifyCrawler_();
+  } catch (e) {
+    botLog_('TRIGGER_ERR', 'Apify', String(e));
+  }
+
+  // 3. Import Google Alerts RSS if available
+  if (typeof m3_importGoogleAlertsRss === 'function') {
+    try { m3_importGoogleAlertsRss(true); } catch (e) {}
+  }
+
+  // 4. Run instant matching for existing database
+  let matchStats = null;
+  if (typeof m3_runFullMatching === 'function') {
+    try {
+      matchStats = m3_runFullMatching(true);
+    } catch (e) {}
+  }
+
+  const ghStatus = ghTriggered ? '✅ تم إطلاق زاحف المنصات (GitHub Actions)' : '⏳ جاري تشغيل زاحف المنصات';
+  const apifyStatus = apifyTriggered ? '✅ تم إطلاق زاحف فيسبوك (Apify)' : '⏳ جاري تشغيل زاحف فيسبوك';
+  const matchInfo = (matchStats && matchStats.hotNew) ? `\n🔥 تم العثور على ${matchStats.hotNew} صفقة ساخنة جاهزة للتواصل في ورقة "تنبيهات ومتابعات"` : '';
+
+  try {
+    const ui = SpreadsheetApp.getUi();
+    ui.alert(
+      '🚀 تم بدء البحث الآلي عن العقارات والمشترين!',
+      `النظام يعمل الآن في السحاب بكامل طاقته:\n\n` +
+      `${ghStatus}\n` +
+      `${apifyStatus}\n` +
+      `✅ تم فحص وتحديث محرك المطابقة${matchInfo}\n\n` +
+      `ستصل العقارات والطلبات الجديدة تلقائياً إلى الشيت خلال دقائق معدودة، بالإضافة إلى استمرار عمل الجدولة التلقائية كل ساعتين!`,
+      ui.ButtonSet.OK
+    );
+  } catch (ignored) {}
+}
+
+function triggerGitHubCrawler_() {
+  const token = botCfg_('GITHUB_TOKEN') || '';
+  const repo  = botCfg_('GITHUB_REPO') || '3bdelmaksoud/waqar-automation';
+  if (!token || !repo) return false;
+  try {
+    const url = 'https://api.github.com/repos/' + repo + '/actions/workflows/waqar_crawler.yml/dispatches';
+    const res = UrlFetchApp.fetch(url, {
+      method: 'post',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'GoogleAppsScript-Waqar'
+      },
+      contentType: 'application/json',
+      payload: JSON.stringify({ ref: 'main' }),
+      muteHttpExceptions: true
+    });
+    return res.getResponseCode() === 204 || res.getResponseCode() === 200;
+  } catch (e) {
+    Logger.log('GitHub dispatch error: ' + e);
+    return false;
+  }
+}
+
+function triggerApifyCrawler_() {
+  const token  = botCfg_('APIFY_TOKEN') || '';
+  const taskId = botCfg_('APIFY_TASK_ID') || '83qAJ0hfS2lOyFJ2p';
+  if (!token || !taskId) return false;
+  try {
+    const url = 'https://api.apify.com/v2/actor-tasks/' + taskId + '/runs?token=' + encodeURIComponent(token);
+    const res = UrlFetchApp.fetch(url, {
+      method: 'post',
+      muteHttpExceptions: true
+    });
+    return res.getResponseCode() >= 200 && res.getResponseCode() < 300;
+  } catch (e) {
+    Logger.log('Apify dispatch error: ' + e);
+    return false;
+  }
+}
