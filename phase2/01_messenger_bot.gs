@@ -1199,7 +1199,7 @@ function botHandleDirectIngest_(body) {
       });
 
       if (newQueueRows.length > 0 && fetchQueueSheet) {
-        const startRow = Math.max(2, fetchQueueSheet.getLastRow() + 1);
+        const startRow = botFirstEmptyRow_(fetchQueueSheet, 3);
         fetchQueueSheet.getRange(startRow, 1, newQueueRows.length, 15).setValues(newQueueRows);
         const idFormulas = [];
         const waFormulas = [];
@@ -1220,7 +1220,7 @@ function botHandleDirectIngest_(body) {
       }
 
       if (newListingsRows.length > 0 && listingsSheet) {
-        const startRow = Math.max(2, listingsSheet.getLastRow() + 1);
+        const startRow = botFirstEmptyRow_(listingsSheet, 5);
         listingsSheet.getRange(startRow, 1, newListingsRows.length, 33).setValues(newListingsRows);
         const idFormulas = [];
         const sqmFormulas = [];
@@ -1293,7 +1293,7 @@ function botHandleDirectIngest_(body) {
         });
 
         if (newBuyerRows.length > 0) {
-          const startRow = Math.max(2, buyerSheet.getLastRow() + 1);
+          const startRow = botFirstEmptyRow_(buyerSheet, 5);
           buyerSheet.getRange(startRow, 1, newBuyerRows.length, 21).setValues(newBuyerRows);
           const idFormulas = [];
           const waFormulas = [];
