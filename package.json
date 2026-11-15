@@ -1,0 +1,21 @@
+{
+  "name": "waqar-automation-crawler",
+  "version": "1.0.0",
+  "description": "Autonomous cloud crawler & matching ingestion engine for Waqar Real Estate (Alexandria, Egypt)",
+  "main": "auto_crawler.js",
+  "scripts": {
+    "start": "node auto_crawler.js",
+    "watch": "node auto_crawler.js --watch --interval 60",
+    "test": "node C:/Users/LENOVO/.gemini/antigravity/brain/2251f405-44ac-4482-ae91-50f12152c601/scratch/test_waqar_suite.js"
+  },
+  "keywords": [
+    "real-estate",
+    "alexandria",
+    "egypt",
+    "crawler",
+    "matching-engine",
+    "automation"
+  ],
+  "author": "Waqar Real Estate",
+  "license": "ISC"
+}

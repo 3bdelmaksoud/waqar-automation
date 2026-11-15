@@ -1,0 +1,29 @@
+name: Waqar Autonomous Real Estate Crawler
+
+on:
+  schedule:
+    # Runs automatically every 2 hours (00:00, 02:00, 04:00, ... UTC)
+    - cron: '0 */2 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI anytime
+
+jobs:
+  crawl-and-match:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run Waqar Autonomous Discovery Cycle
+        env:
+          WAQAR_WEBHOOK_URL: ${{ secrets.WAQAR_WEBHOOK_URL }}
+          WAQAR_INGEST_SECRET: ${{ secrets.WAQAR_INGEST_SECRET }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          APIFY_DATASET_ID: ${{ secrets.APIFY_DATASET_ID }}
+          WAQAR_RSS_FEEDS: ${{ secrets.WAQAR_RSS_FEEDS }}
+        run: |
+          node auto_crawler.js
