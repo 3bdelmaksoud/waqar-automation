@@ -183,8 +183,8 @@ function postJson(targetUrl, payload) {
     const req = lib.request(targetUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(bodyStr),
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': Buffer.byteLength(bodyStr, 'utf8'),
         'User-Agent': 'WaqarCrawler/1.0 (+https://facebook.com/Waqar.Realestatee)'
       },
       timeout: 30000
@@ -203,7 +203,7 @@ function postJson(targetUrl, payload) {
     });
     req.on('error', reject);
     req.on('timeout', () => { req.destroy(); reject(new Error(`Timeout posting to ${targetUrl}`)); });
-    req.write(bodyStr);
+    req.write(bodyStr, 'utf8');
     req.end();
   });
 }

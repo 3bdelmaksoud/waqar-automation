@@ -13,7 +13,7 @@
  * ============================================================
  */
 
-const M3_SHEETS = {
+var M3_SHEETS = {
   LISTINGS:     '🏠 العقارات',
   BUYERS:       '👥 المشترون',
   FETCH_QUEUE:  '🌐 جلب العقارات (خارجي)',
@@ -23,7 +23,7 @@ const M3_SHEETS = {
 };
 
 // Geographic neighbor map for Alexandria districts (similar location fallback)
-const M3_ALEX_NEIGHBORS = {
+var M3_ALEX_NEIGHBORS = {
   'سموحة':       ['سيدي جابر', 'كفر عبده', 'سبورتنج', 'كليوباترا', 'محرم بك'],
   'روشدي':       ['كفر عبده', 'سيدي جابر', 'ستانلي', 'سبورتنج', 'جليم'],
   'سان ستيفانو': ['جليم', 'زيزينيا', 'ستانلي', 'لوران', 'روشدي'],
