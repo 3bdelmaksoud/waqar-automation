@@ -1509,20 +1509,20 @@ function cleanAndFixSheetRows() {
 
 // ============================================================
 // INSTANT AUTOMATED SOURCING TRIGGER (Button & Menu Entry)
-// Wakes up GitHub Actions + Apify + RSS + Matching Engine on demand
+// Wakes up GitHub Actions + Apify + Pulls & Pastes Results to Sheet
 // ============================================================
 function triggerInstantAutomatedSourcing() {
   let ghTriggered = false;
   let apifyTriggered = false;
 
-  // 1. Wake up GitHub Actions Crawler
+  // 1. Wake up GitHub Actions Crawler in the cloud
   try {
     ghTriggered = triggerGitHubCrawler_();
   } catch (e) {
     Logger.log('GitHub trigger note: ' + e);
   }
 
-  // 2. Wake up Apify Facebook Crawler
+  // 2. Wake up Apify Facebook Crawler in the cloud
   try {
     apifyTriggered = triggerApifyCrawler_();
   } catch (e) {
@@ -1534,16 +1534,40 @@ function triggerInstantAutomatedSourcing() {
     try { m3_importGoogleAlertsRss(true); } catch (e) {}
   }
 
+  // 4. INSTANT SYNC: Pull latest scraped Facebook posts from Apify and paste directly into Sheet
+  let ingestStats = { inserted_listings: 0, inserted_buyers: 0 };
+  try {
+    if (typeof syncLatestApifyPostsDirectly_ === 'function') {
+      ingestStats = syncLatestApifyPostsDirectly_();
+    }
+  } catch (e) {
+    Logger.log('Direct sync note: ' + e);
+  }
+
+  // 5. Run Matching Engine Immediately
+  let matchStats = null;
+  if (typeof m3_runFullMatching === 'function') {
+    try {
+      matchStats = m3_runFullMatching(true);
+    } catch (e) {}
+  }
+
   const ghStatus = ghTriggered ? '✅ تم إطلاق زاحف المنصات (GitHub Actions)' : '⏳ جاري تشغيل زاحف المنصات';
   const apifyStatus = apifyTriggered ? '✅ تم إطلاق زاحف فيسبوك (Apify)' : '⏳ جاري تشغيل زاحف فيسبوك';
+  const newL = ingestStats.inserted_listings || 0;
+  const newB = ingestStats.inserted_buyers || 0;
+  const hotM = (matchStats && matchStats.hotNew) ? matchStats.hotNew : 0;
 
   safeAlert(
-    '🚀 تم بدء البحث الآلي عن العقارات والمشترين!',
-    `النظام يعمل الآن في السحاب بكامل طاقته:\n\n` +
+    '🚀 تم تشغيل البحث الآلي وإدراج النتائج في الشيت فوراً!',
+    `تم إطلاق البحث وسحب النتائج بنجاح:\n\n` +
+    `📥 تم إضافة إلى الشيت الآن:\n` +
+    `• عقارات خارجية جديدة: ${newL} عقار في ورقة "جلب العقارات (خارجي)"\n` +
+    `• طلبات مشترين جديدة: ${newB} مشتري في ورقة "المشترون"\n` +
+    `• صفقات ساخنة جاهزة للتواصل: ${hotM} صفقة في ورقة "تنبيهات ومتابعات"\n\n` +
     `${ghStatus}\n` +
-    `${apifyStatus}\n` +
-    `✅ تم فحص وتحديث محرك البحث التلقائي\n\n` +
-    `ستصل العقارات والطلبات الجديدة تلقائياً إلى الشيت خلال دقائق معدودة، بالإضافة إلى استمرار عمل الجدولة التلقائية كل ساعتين!`
+    `${apifyStatus}\n\n` +
+    `سيرفرات السحاب تواصل العمل في الخلفية لتجميع وضخ المزيد تلقائياً كل ساعتين!`
   );
 }
 
