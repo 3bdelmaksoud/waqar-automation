@@ -1450,129 +1450,90 @@ function botHandleApifyWebhook_(body, e) {
 
 
 // ============================================================
-// 15. ONE-CLICK CLEANUP & POPULATE FROM ROW 2 (Pure Arabic)
+// 15. SAFE DATA COMPACTOR: SHIFT ROWS TO TOP (PRESERVES 100% OF REAL DATA)
+// Eliminates the 500-row gap so listings start at Row 2 and continue naturally
 // ============================================================
 function cleanAndFixSheetRows() {
   const ss = botGetSpreadsheet_();
   if (!ss) return;
 
-  const listSheet  = ss.getSheetByName(BOT_SHEETS.LISTINGS || '🏠 العقارات');
-  const buyerSheet = ss.getSheetByName(BOT_SHEETS.BUYERS || '👥 المشترون');
+  let totalShiftedListings = 0;
+  let totalShiftedBuyers = 0;
+
+  // 1. Safe Compact for 🌐 جلب العقارات (خارجي)
   const fetchSheet = ss.getSheetByName(BOT_SHEETS.FETCH_QUEUE || '🌐 جلب العقارات (خارجي)');
-  const matchSheet = ss.getSheetByName(BOT_SHEETS.MATCHES || '🔗 التطابقات');
-  const qSheet     = ss.getSheetByName('🔥 تنبيهات ومتابعات');
+  if (fetchSheet && fetchSheet.getLastRow() >= 2) {
+    const maxRow = fetchSheet.getLastRow();
+    const allVals = fetchSheet.getRange(2, 1, maxRow - 1, 15).getValues();
+    const realRows = allVals.filter(r => {
+      const platform = String(r[2] || '').trim();
+      const url      = String(r[3] || '').trim();
+      const phone    = String(r[9] || '').trim();
+      const text     = String(r[11] || '').trim();
+      return platform !== '' || url !== '' || phone !== '' || text !== '';
+    });
 
-  // 1. Clear stale rows from Row 2 downwards
-  [listSheet, buyerSheet, fetchSheet, matchSheet].forEach(sh => {
-    if (sh && sh.getLastRow() >= 2) {
-      sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).clearContent();
-    }
-  });
-  if (qSheet) {
-    qSheet.clearContents();
-  }
+    fetchSheet.getRange(2, 1, maxRow - 1, fetchSheet.getLastColumn()).clearContent();
 
-  // 2. Insert Clean Sample Property in 🏠 العقارات (Row 2)
-  if (listSheet) {
-    listSheet.getRange(2, 2, 1, 31).setValues([[
-      new Date(),
-      'واتساب',
-      'منشور',
-      'شقة',
-      'سموحة',
-      'شارع ألبرت الأول',
-      3,
-      11,
-      180,
-      '3',
-      '2',
-      '3 قطع',
-      'تشطيب سوبر لوكس',
-      '5-10 سنوات',
-      'أسانسير، جراج، مرخصة، مطلات مفتوحة',
-      3900000,
-      '',
-      'كاش',
-      '',
-      'نعم',
-      'الحاج عبد العزيز',
-      '01033445566',
-      'ملكية تامة',
-      'شقة ممتازة في سموحة شارع ألبرت الأول 180م دور ثالث أسانسير ورخصة وعدادات كاملة',
-      '',
-      '',
-      '',
-      'https://facebook.com/Waqar.Realestatee',
-      'عقار ممتاز جاهز للمعاينة الفورية 🌟',
-      '',
-      new Date()
-    ]]);
-    listSheet.getRange(2, 1).setFormula('=IF(E2<>"","WQ-"&TEXT(ROW()-1,"000"),"")');
-    listSheet.getRange(2, 18).setFormula('=IF(AND(ISNUMBER(Q2),ISNUMBER(J2),J2>0),ROUND(Q2/J2,0),"")');
-    listSheet.getRange(2, 33).setFormula('=IF(W2<>"","https://wa.me/2"&SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(W2," ",""),"-",""),"+2",""),"+",""),"")');
-  }
+    if (realRows.length > 0) {
+      fetchSheet.getRange(2, 1, realRows.length, 15).setValues(realRows);
 
-  // 3. Insert Clean Sample Buyers in 👥 المشترون (Rows 2, 3, 4)
-  if (buyerSheet) {
-    buyerSheet.getRange(2, 2, 3, 19).setValues([
-      [
-        new Date(), 'جروبات فيسبوك (طلب مشتري)', 'نشط 🔥', 'المستشار أحمد فؤاد', '01066778899',
-        'شقة', 4200000, 3500000, 'سموحة، رشدي', 160, 'كاش فقط', 'عاجل — أقل من شهر',
-        'أسانسير، جراج، 3 غرف، دور مناسب', 'طلب شقة للشراء فوراً في سموحة', '', 0, '', '', new Date()
-      ],
-      [
-        new Date(), 'دوبيزل (مطلوب)', 'نشط 🔥', 'الحاج رأفت النجار', '01188990011',
-        'محل', 3300000, 2500000, 'ميامي، سيدي بشر', 40, 'كاش', 'خلال شهر',
-        'واجهة رئيسية، عداد كهرباء تجاري', 'طلب محل تجاري في ميامي أو سيدي بشر', '', 0, '', '', new Date()
-      ],
-      [
-        new Date(), 'جروبات فيسبوك (طلب مشتري)', 'نشط 🔥', 'المهندس معتز بدر', '01555667788',
-        'أرض', 13000000, 9000000, 'سموحة، سيدي جابر', 300, 'كاش', 'عاجل',
-        'رخصة مباني، واجهة بحري', 'طلب قطعة أرض في سموحة 300-350م برخصة بناء', '', 0, '', '', new Date()
-      ]
-    ]);
-    for (let r = 2; r <= 4; r++) {
-      buyerSheet.getRange(r, 1).setFormula(`=IF(E${r}<>"","BYR-"&TEXT(ROW()-1,"000"),"")`);
-      buyerSheet.getRange(r, 21).setFormula(`=IF(F${r}<>"","https://wa.me/2"&SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(F${r}," ",""),"-",""),"+2",""),"+",""),"")`);
+      const idFormulas = [];
+      const waFormulas = [];
+      for (let i = 0; i < realRows.length; i++) {
+        const r = 2 + i;
+        idFormulas.push([`=IF(OR(C${r}<>"",L${r}<>""),"EXT-"&TEXT(ROW()-1,"000"),"")`]);
+        const msgExpr =
+          `"السلام عليكم ورحمة الله 🌟"&CHAR(10)&` +
+          `"مع حضرتك نورا من صفحة وقار للاستثمار العقاري بالإسكندرية."&CHAR(10)&` +
+          `"شفت إعلانك عن "&IF(E${r}<>"",E${r},"العقار")&` +
+          `IF(F${r}<>""," في "&F${r},"")&` +
+          `" وحابة أعرف تفاصيل أكتر وهل العقار متاح حالياً للتسويق؟"`;
+        waFormulas.push([`=IF(J${r}<>"","https://wa.me/2"&SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(J${r}," ",""),"-",""),"+2",""),"+","")&"?text="&ENCODEURL(${msgExpr}),"")`]);
+      }
+      fetchSheet.getRange(2, 1, realRows.length, 1).setFormulas(idFormulas);
+      fetchSheet.getRange(2, 11, realRows.length, 1).setFormulas(waFormulas);
+      totalShiftedListings = realRows.length;
     }
   }
 
-  // 4. Insert Clean Sample External Listings in 🌐 جلب العقارات (خارجي) (Rows 2, 3, 4)
-  if (fetchSheet) {
-    fetchSheet.getRange(2, 2, 3, 13).setValues([
-      [
-        new Date(), 'مجموعات فيسبوك', 'https://facebook.com/groups/alexandria.realestate/posts/501',
-        'شقة', 'سموحة', 180, 3950000, 'أ/ حسام عبد العزيز', '01022339911', '',
-        'شقة للبيع في سموحة شارع ألبرت الأول 180م 3 غرف دور ثالث أسانسير وجراج', 'لم يتم التواصل', 'شقة راقية في سموحة 🌟'
-      ],
-      [
-        new Date(), 'OLX / دوبيزل', 'https://dubizzle.com.eg/ad/alex-land-502',
-        'أرض', 'سموحة', 320, 11200000, 'م/ تامر الجوهري', '01144558822', '',
-        'أرض للبيع في سموحة 320م ناصية بحري رخصة مباني أرضي و 11 دور', 'لم يتم التواصل', 'أرض ممتازة للبناء 🏗️'
-      ],
-      [
-        new Date(), 'عقارماب', 'https://aqarmap.com.eg/ad/alex-store-503',
-        'محل', 'ميامي', 50, 3100000, 'أ/ وحيد مهران', '01277889933', '',
-        'محل تجاري للبيع في ميامي شارع خالد بن الوليد 50م واجهة 6م عداد تجاري 3 فاز', 'لم يتم التواصل', 'موقع تجاري نشط 🏪'
-      ]
-    ]);
-    fetchSheet.getRange(2, 1, 3, 1).setFormulas([
-      ['=IF(OR(C2<>"",L2<>""),"EXT-"&TEXT(ROW()-1,"000"),"")'],
-      ['=IF(OR(C3<>"",L3<>""),"EXT-"&TEXT(ROW()-1,"000"),"")'],
-      ['=IF(OR(C4<>"",L4<>""),"EXT-"&TEXT(ROW()-1,"000"),"")']
-    ]);
+  // 2. Safe Compact for 👥 المشترون
+  const buyerSheet = ss.getSheetByName(BOT_SHEETS.BUYERS || '👥 المشترون');
+  if (buyerSheet && buyerSheet.getLastRow() >= 2) {
+    const maxRow = buyerSheet.getLastRow();
+    const allVals = buyerSheet.getRange(2, 1, maxRow - 1, 21).getValues();
+    const realRows = allVals.filter(r => {
+      const name  = String(r[4] || '').trim();
+      const phone = String(r[5] || '').trim();
+      return name !== '' || phone !== '';
+    });
+
+    buyerSheet.getRange(2, 1, maxRow - 1, buyerSheet.getLastColumn()).clearContent();
+
+    if (realRows.length > 0) {
+      buyerSheet.getRange(2, 1, realRows.length, 21).setValues(realRows);
+
+      const idFormulas = [];
+      const waFormulas = [];
+      for (let i = 0; i < realRows.length; i++) {
+        const r = 2 + i;
+        idFormulas.push([`=IF(E${r}<>"","BYR-"&TEXT(ROW()-1,"000"),"")`]);
+        waFormulas.push([`=IF(F${r}<>"","https://wa.me/2"&SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(F${r}," ",""),"-",""),"+2",""),"+",""),"")`]);
+      }
+      buyerSheet.getRange(2, 1, realRows.length, 1).setFormulas(idFormulas);
+      buyerSheet.getRange(2, 21, realRows.length, 1).setFormulas(waFormulas);
+      totalShiftedBuyers = realRows.length;
+    }
   }
 
   try {
     const ui = SpreadsheetApp.getUi();
     ui.alert(
-      '✅ تم تنظيف وترتيب الشيت بالكامل فوراً!',
-      'تم مسح الصفوف الفارغة القديمة بنجاح في أقل من ثانية.\n\n' +
-      'تظهر البيانات الآن باللغة العربية الواضحة مباشرة من الصف رقم 2 في:\n' +
-      '1. 🏠 العقارات (عقار WQ-001 في سموحة)\n' +
-      '2. 👥 المشترون (المستشار أحمد فؤاد، الحاج رأفت، م/ معتز)\n' +
-      '3. 🌐 جلب العقارات (3 عروض خارجية في الصفوف 2، 3، 4)\n' +
-      '4. 🔥 تنبيهات ومتابعات (جاهزة لاستقبال الصفقات الجديدة)',
+      '✅ تم رفع البيانات إلى قمة الشيت بنجاح دون مسح أي عقار!',
+      `تم إزالة الفراغات القديمة ونقل بياناتك الحقيقية لتبدأ مباشرة من الصف 2:\n\n` +
+      `• العقارات الخارجية: ${totalShiftedListings} عقار تبدأ من الصف 2\n` +
+      `• طلبات المشترين: ${totalShiftedBuyers} مشتري تبدأ من الصف 2\n\n` +
+      `من الآن فصاعداً، ستتوالى العقارات الجديدة تلقائياً تحت بعضها وراء آخر عقار دون أي قفز إلى الصف 501!`,
       ui.ButtonSet.OK
     );
   } catch (ignored) {}
